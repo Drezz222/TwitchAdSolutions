@@ -1009,7 +1009,6 @@
             });
         }catch{}
         let hidden = document.__lookupGetter__('hidden');
-        let webkitHidden = document.__lookupGetter__('webkitHidden');
         try {
             Object.defineProperty(document, 'hidden', {
                 get() {
@@ -1027,7 +1026,7 @@
             const isChrome = typeof chrome !== 'undefined';
             const videos = document.getElementsByTagName('video');
             if (videos.length > 0) {
-                if (hidden.apply(document) === true || (webkitHidden && webkitHidden.apply(document) === true)) {
+                if (hidden.apply(document) === true) {
                     wasVideoPlaying = !videos[0].paused && !videos[0].ended;
                 } else {
                     if (!playerBufferState.hasStreamStarted) {
@@ -1042,24 +1041,6 @@
             block(e);
         };
         document.addEventListener('visibilitychange', visibilityChange, true);
-        document.addEventListener('webkitvisibilitychange', visibilityChange, true);
-        document.addEventListener('mozvisibilitychange', visibilityChange, true);
-        document.addEventListener('hasFocus', block, true);
-        try {
-            if (/Firefox/.test(navigator.userAgent)) {
-                Object.defineProperty(document, 'mozHidden', {
-                    get() {
-                        return false;
-                    }
-                });
-            } else {
-                Object.defineProperty(document, 'webkitHidden', {
-                    get() {
-                        return false;
-                    }
-                });
-            }
-        }catch{}
         // Hooks for preserving volume / resolution
         try {
             const keysToCache = [
