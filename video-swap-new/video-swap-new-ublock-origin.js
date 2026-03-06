@@ -949,7 +949,7 @@ twitch-videoad.js text/javascript
     hookWindowWorker();
     hookFetch();
     monitorLiveStatus();
-    if (document.readyState === "complete" || document.readyState === "loaded" || document.readyState === "interactive") {
+    if (document.readyState === "complete" || document.readyState === "interactive") {
         onContentLoaded();
     } else {
         window.addEventListener("DOMContentLoaded", function() {

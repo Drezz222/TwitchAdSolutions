@@ -519,7 +519,7 @@
     declareOptions(window);
     hookWindowWorker();
     hookFetch();
-    if (document.readyState === "complete" || document.readyState === "loaded" || document.readyState === "interactive") {
+    if (document.readyState === "complete" || document.readyState === "interactive") {
         onContentLoaded();
     } else {
         window.addEventListener("DOMContentLoaded", function() {
