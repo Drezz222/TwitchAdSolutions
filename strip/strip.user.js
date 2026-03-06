@@ -316,7 +316,7 @@
             }
             NumStrippedSegments = 0;
         }
-        AdSegmentCache.forEach((key, value, map) => {
+        AdSegmentCache.forEach((value, key, map) => {
             if (value < Date.now() - 120000) {
                 map.delete(key);
             }
