@@ -197,14 +197,11 @@
                                 resolve(response);
                             }
                         };
-                        const send = function() {
-                            return realFetch(url, options).then(function(response) {
-                                processAfter(response);
-                            })['catch'](function(err) {
-                                reject(err);
-                            });
-                        };
-                        send();
+                        realFetch(url, options).then(function(response) {
+                            processAfter(response);
+                        })['catch'](function(err) {
+                            reject(err);
+                        });
                     });
                 }
                 if (M3U8Whitelist.has(url)) {
@@ -216,14 +213,11 @@
                                 resolve(response);
                             }
                         };
-                        const send = function() {
-                            return realFetch(url, options).then(function(response) {
-                                processAfter(response);
-                            })['catch'](function(err) {
-                                reject(err);
-                            });
-                        };
-                        send();
+                        realFetch(url, options).then(function(response) {
+                            processAfter(response);
+                        })['catch'](function(err) {
+                            reject(err);
+                        });
                     });
                 } else if (url.includes('/channel/hls/') && !url.includes('picture-by-picture')) {
                     V2API = url.includes('/api/v2/');
@@ -249,14 +243,11 @@
                                 resolve(response);
                             }
                         };
-                        const send = function() {
-                            return realFetch(url, options).then(function(response) {
-                                processAfter(response);
-                            })['catch'](function(err) {
-                                reject(err);
-                            });
-                        };
-                        send();
+                        realFetch(url, options).then(function(response) {
+                            processAfter(response);
+                        })['catch'](function(err) {
+                            reject(err);
+                        });
                     });
                 }
             }
