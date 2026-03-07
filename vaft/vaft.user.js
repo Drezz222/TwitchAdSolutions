@@ -141,6 +141,12 @@
                 }
                 const newBlobStr = `
                     const pendingFetchRequests = new Map();
+                    const RE_SERVER_TIME_V2 = ${RE_SERVER_TIME_V2};
+                    const RE_SERVER_TIME = ${RE_SERVER_TIME};
+                    const RE_SERVER_TIME_REPLACE_V2 = ${RE_SERVER_TIME_REPLACE_V2};
+                    const RE_SERVER_TIME_REPLACE = ${RE_SERVER_TIME_REPLACE};
+                    const RE_AD_URL = ${RE_AD_URL};
+                    const RE_AD_CLICK_URL = ${RE_AD_CLICK_URL};
                     ${stripAdSegments.toString()}
                     ${getStreamUrlForResolution.toString()}
                     ${processM3U8.toString()}
