@@ -1044,7 +1044,7 @@ twitch-videoad.js text/javascript
             const isChrome = typeof chrome !== 'undefined';
             const videos = document.getElementsByTagName('video');
             if (videos.length > 0) {
-                if (hidden.apply(document) === true) {
+                if (hidden && hidden.apply(document) === true) {
                     wasVideoPlaying = !videos[0].paused && !videos[0].ended;
                 } else {
                     if (!playerBufferState.hasStreamStarted) {
