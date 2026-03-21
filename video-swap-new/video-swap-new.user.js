@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TwitchAdSolutions (video-swap-new)
 // @namespace    https://github.com/ryanbr/TwitchAdSolutions
-// @version      1.57
+// @version      1.58
 // @updateURL    https://github.com/ryanbr/TwitchAdSolutions/raw/master/video-swap-new/video-swap-new.user.js
 // @downloadURL  https://github.com/ryanbr/TwitchAdSolutions/raw/master/video-swap-new/video-swap-new.user.js
 // @description  Multiple solutions for blocking Twitch ads (video-swap-new)
@@ -13,7 +13,7 @@
 // ==/UserScript==
 (function() {
     'use strict';
-    const ourTwitchAdSolutionsVersion = 26;// Used to prevent conflicts with outdated versions of the scripts
+    const ourTwitchAdSolutionsVersion = 27;// Used to prevent conflicts with outdated versions of the scripts
     if (typeof window.twitchAdSolutionsVersion !== 'undefined' && window.twitchAdSolutionsVersion >= ourTwitchAdSolutionsVersion) {
         console.log("skipping video-swap-new as there's another script active. ourVersion:" + ourTwitchAdSolutionsVersion + " activeVersion:" + window.twitchAdSolutionsVersion);
         window.twitchAdSolutionsVersion = ourTwitchAdSolutionsVersion;
@@ -24,7 +24,8 @@
         // Options / globals
         scope.OPT_BACKUP_PLAYER_TYPES = [ 'autoplay', 'picture-by-picture', /*'autoplay-ALT',*/ 'embed' ];
         scope.OPT_FORCE_ACCESS_TOKEN_PLAYER_TYPE = 'popout';
-        scope.AD_SIGNIFIER = 'stitched-ad';
+        scope.AD_SIGNIFIER = 'stitched-ad';// Legacy single signifier (kept for compatibility)
+        scope.AD_SIGNIFIERS = ['stitched', 'stitched-ad', 'X-TV-TWITCH-AD', 'EXT-X-CUE-OUT', 'EXT-X-DATERANGE:CLASS="twitch-stitched-ad"'];
         scope.LIVE_SIGNIFIER = ',live';
         scope.CLIENT_ID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
         // These are only really for Worker scope...
@@ -114,6 +115,7 @@
                 }
                 const newBlobStr = `
                     const pendingFetchRequests = new Map();
+                    ${hasAdTags.toString()}
                     ${stripAdSegments.toString()}
                     ${processM3U8.toString()}
                     ${hookWorkerFetch.toString()}
@@ -279,7 +281,7 @@
                             const streamM3u8Response = await realFetch(streamM3u8Url);
                             if (streamM3u8Response.status === 200) {
                                 const backTextStr = await streamM3u8Response.text();
-                                if ((!backTextStr.includes(AD_SIGNIFIER) && (SimulatedAdsDepth == 0 || i >= SimulatedAdsDepth - 1)) || i >= playerTypes.length - 1) {
+                                if ((!hasAdTags(backTextStr) && (SimulatedAdsDepth == 0 || i >= SimulatedAdsDepth - 1)) || i >= playerTypes.length - 1) {
                                     result = backTextStr;
                                     backupPlayerTypeInfo = ' (' + playerType + ')';
                                     streamInfo.BackupEncodingsStatus.set(playerType, 1);
@@ -331,17 +333,27 @@
         updateAdblockBannerForStream(streamInfo);
         return result;
     }
+    function hasAdTags(textStr) {
+        return AD_SIGNIFIERS.some((s) => textStr.includes(s));
+    }
     function stripAdSegments(textStr, stripAllSegments, streamInfo) {
         let hasStrippedAdSegments = false;
+        let inCueOut = false;
         const lines = textStr.replaceAll('\r', '').split('\n');
         const newAdUrl = 'https://twitch.tv';
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
+            // Track SCTE-35 CUE-OUT/CUE-IN ad boundaries
+            if (line.includes('EXT-X-CUE-OUT')) {
+                inCueOut = true;
+            } else if (line.includes('EXT-X-CUE-IN')) {
+                inCueOut = false;
+            }
             // Remove tracking urls which appear in the overlay UI
             lines[i] = line
                 .replaceAll(/(X-TV-TWITCH-AD-URL=")(?:[^"]*)(")/g, `$1${newAdUrl}$2`)
                 .replaceAll(/(X-TV-TWITCH-AD-CLICK-TRACKING-URL=")(?:[^"]*)(")/g, `$1${newAdUrl}$2`);
-            if (i < lines.length - 1 && line.startsWith('#EXTINF') && (!line.includes(',live') || stripAllSegments || AllSegmentsAreAdSegments)) {
+            if (i < lines.length - 1 && line.startsWith('#EXTINF') && (!line.includes(',live') || stripAllSegments || AllSegmentsAreAdSegments || inCueOut)) {
                 const segmentUrl = lines[i + 1];
                 if (!AdSegmentCache.has(segmentUrl)) {
                     streamInfo.NumStrippedAdSegments++;
@@ -349,7 +361,7 @@
                 AdSegmentCache.set(segmentUrl, Date.now());
                 hasStrippedAdSegments = true;
             }
-            if (line.includes(AD_SIGNIFIER)) {
+            if (AD_SIGNIFIERS.some((s) => line.includes(s))) {
                 hasStrippedAdSegments = true;
             }
         }
@@ -380,14 +392,14 @@
         if (!currentResolution) {
             return textStr;
         }
-        const haveAdTags = textStr.includes(AD_SIGNIFIER) || (SimulatedAdsDepth > 0 && (!streamInfo.BackupEncodings || !streamInfo.BackupEncodings.includes(url) || SimulatedAdsDepth - 1 > streamInfo.BackupEncodingsPlayerTypeIndex));
+        const haveAdTags = hasAdTags(textStr) || (SimulatedAdsDepth > 0 && (!streamInfo.BackupEncodings || !streamInfo.BackupEncodings.includes(url) || SimulatedAdsDepth - 1 > streamInfo.BackupEncodingsPlayerTypeIndex));
         if (streamInfo.BackupEncodings) {
             const streamM3u8Url = streamInfo.Encodings.match(/^https:.*\.m3u8$/m)[0];
             const streamM3u8Response = await realFetch(streamM3u8Url);
             if (streamM3u8Response.status == 200) {
                 const streamM3u8 = await streamM3u8Response.text();
                 if (streamM3u8 != null) {
-                    if (!streamM3u8.includes(AD_SIGNIFIER) && SimulatedAdsDepth == 0) {
+                    if (!hasAdTags(streamM3u8) && SimulatedAdsDepth == 0) {
                         console.log('No more ads on main stream. Triggering player reload to go back to main stream...');
                         streamInfo.IsMovingOffBackupEncodings = true;
                         streamInfo.BackupEncodings = null;
@@ -504,7 +516,7 @@
                                 const streamM3u8Response = await realFetch(resolutionInfo.Url);
                                 if (streamM3u8Response.status == 200) {
                                     const streamM3u8 = await streamM3u8Response.text();
-                                    if (streamM3u8.includes(AD_SIGNIFIER) || SimulatedAdsDepth > 0) {
+                                    if (hasAdTags(streamM3u8) || SimulatedAdsDepth > 0) {
                                         await onFoundAd(streamInfo, streamM3u8, false, realFetch, resolutionInfo.Url, resolutionInfo);
                                     }
                                 } else {
