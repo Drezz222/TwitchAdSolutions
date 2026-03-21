@@ -1104,7 +1104,7 @@
             block(e);
         };
         document.addEventListener('visibilitychange', visibilityChange, true);
-        document.hasFocus = () => true;
+        try { document.hasFocus = () => true; } catch{}
         // Hooks for preserving volume / resolution
         try {
             const keysToCache = [
