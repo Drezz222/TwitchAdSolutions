@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TwitchAdSolutions (vaft-testing)
 // @namespace    https://github.com/ryanbr/TwitchAdSolutions
-// @version      41.0.0
+// @version      42.0.0
 // @description  Multiple solutions for blocking Twitch ads (vaft)
 // @updateURL    https://github.com/ryanbr/TwitchAdSolutions/raw/master/vaft/vaft.user.js
 // @downloadURL  https://github.com/ryanbr/TwitchAdSolutions/raw/master/vaft/vaft.user.js
@@ -13,7 +13,7 @@
 // ==/UserScript==
 (function() {
     'use strict';
-    const ourTwitchAdSolutionsVersion = 29;// Used to prevent conflicts with outdated versions of the scripts
+    const ourTwitchAdSolutionsVersion = 30;// Used to prevent conflicts with outdated versions of the scripts
     if (typeof window.twitchAdSolutionsVersion !== 'undefined' && window.twitchAdSolutionsVersion >= ourTwitchAdSolutionsVersion) {
         console.log("skipping vaft as there's another script active. ourVersion:" + ourTwitchAdSolutionsVersion + " activeVersion:" + window.twitchAdSolutionsVersion);
         window.twitchAdSolutionsVersion = ourTwitchAdSolutionsVersion;
@@ -22,10 +22,12 @@
     window.twitchAdSolutionsVersion = ourTwitchAdSolutionsVersion;
     // Configuration and state shared between window and worker scopes
     function declareOptions(scope) {
-        scope.AdSignifier = 'stitched';
+        scope.AdSignifier = 'stitched';// Legacy single signifier (kept for compatibility)
+        scope.AdSignifiers = ['stitched', 'stitched-ad', 'X-TV-TWITCH-AD', 'EXT-X-CUE-OUT', 'EXT-X-DATERANGE:CLASS="twitch-stitched-ad"'];
         scope.ClientID = 'kimne78kx3ncx6brgo4mv6wki5h1ko';
         scope.BackupPlayerTypes = [
             'embed',//Source
+            'site',//Source
             'popout',//Source
             'autoplay',//360p
             //'picture-by-picture-CACHED'//360p (-CACHED is an internal suffix and is removed)
@@ -136,6 +138,7 @@
                 }
                 const newBlobStr = `
                     const pendingFetchRequests = new Map();
+                    ${hasAdTags.toString()}
                     ${stripAdSegments.toString()}
                     ${getStreamUrlForResolution.toString()}
                     ${processM3U8.toString()}
@@ -382,18 +385,28 @@
         }
         return newServerTime ? encodingsM3u8.replace(/(SERVER-TIME=")[0-9.]+"/, `SERVER-TIME="${newServerTime}"`) : encodingsM3u8;
     }
+    function hasAdTags(textStr) {
+        return AdSignifiers.some((s) => textStr.includes(s));
+    }
     // Remove ad segments from an m3u8 playlist and cache their URLs for replacement
     function stripAdSegments(textStr, stripAllSegments, streamInfo) {
         let hasStrippedAdSegments = false;
+        let inCueOut = false;
         const lines = textStr.split(/\r?\n/);
         const newAdUrl = 'https://twitch.tv';
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
+            // Track SCTE-35 CUE-OUT/CUE-IN ad boundaries
+            if (line.includes('EXT-X-CUE-OUT')) {
+                inCueOut = true;
+            } else if (line.includes('EXT-X-CUE-IN')) {
+                inCueOut = false;
+            }
             // Remove tracking urls which appear in the overlay UI
             lines[i] = line
                 .replaceAll(/(X-TV-TWITCH-AD-URL=")(?:[^"]*)(")/g, `$1${newAdUrl}$2`)
                 .replaceAll(/(X-TV-TWITCH-AD-CLICK-TRACKING-URL=")(?:[^"]*)(")/g, `$1${newAdUrl}$2`);
-            if (i < lines.length - 1 && line.startsWith('#EXTINF') && (!line.includes(',live') || stripAllSegments || AllSegmentsAreAdSegments)) {
+            if (i < lines.length - 1 && line.startsWith('#EXTINF') && (!line.includes(',live') || stripAllSegments || AllSegmentsAreAdSegments || inCueOut)) {
                 const segmentUrl = lines[i + 1];
                 if (!AdSegmentCache.has(segmentUrl)) {
                     streamInfo.NumStrippedAdSegments++;
@@ -401,7 +414,7 @@
                 AdSegmentCache.set(segmentUrl, Date.now());
                 hasStrippedAdSegments = true;
             }
-            if (line.includes(AdSignifier)) {
+            if (AdSignifiers.some((s) => line.includes(s))) {
                 hasStrippedAdSegments = true;
             }
         }
@@ -466,7 +479,7 @@
             HasTriggeredPlayerReload = false;
             streamInfo.LastPlayerReload = Date.now();
         }
-        const haveAdTags = textStr.includes(AdSignifier) || SimulatedAdsDepth > 0;
+        const haveAdTags = hasAdTags(textStr) || SimulatedAdsDepth > 0;
         if (haveAdTags) {
             streamInfo.IsMidroll = textStr.includes('"MIDROLL"') || textStr.includes('"midroll"');
             if (!streamInfo.IsShowingAd) {
@@ -553,12 +566,12 @@
                                     if (playerType == FallbackPlayerType) {
                                         fallbackM3u8 = m3u8Text;
                                     }
-                                    if ((!m3u8Text.includes(AdSignifier) && (SimulatedAdsDepth == 0 || playerTypeIndex >= SimulatedAdsDepth - 1)) || (!fallbackM3u8 && playerTypeIndex >= BackupPlayerTypes.length - 1)) {
+                                    if ((!hasAdTags(m3u8Text) && (SimulatedAdsDepth == 0 || playerTypeIndex >= SimulatedAdsDepth - 1)) || (!fallbackM3u8 && playerTypeIndex >= BackupPlayerTypes.length - 1)) {
                                         backupPlayerType = playerType;
                                         backupM3u8 = m3u8Text;
                                         break;
                                     }
-                                    if (m3u8Text.includes(AdSignifier)) {
+                                    if (hasAdTags(m3u8Text)) {
                                         console.log('[AD DEBUG] Backup stream (' + playerType + ') also has ads');
                                     }
                                     if (isFullyCachedPlayerType) {
