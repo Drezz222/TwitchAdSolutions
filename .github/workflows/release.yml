@@ -1,12 +1,7 @@
 name: Create Release
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - "vaft/**"
-      - "video-swap-new/**"
+  workflow_dispatch:
 
 jobs:
   create-release:
