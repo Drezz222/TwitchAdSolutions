@@ -1143,6 +1143,12 @@
         }
     }
     declareOptions(window);
+    try {
+        const lsReloadAfterAd = localStorage.getItem('twitchAdSolutions_reloadPlayerAfterAd');
+        if (lsReloadAfterAd !== null) {
+            ReloadPlayerAfterAd = lsReloadAfterAd === 'true';
+        }
+    } catch {}
     hookWindowWorker();
     hookFetch();
     if (PlayerBufferingFix) {
