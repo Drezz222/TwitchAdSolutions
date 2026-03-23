@@ -71,12 +71,21 @@ The scripts support runtime configuration via `localStorage`. Set values in the 
 - `false` - pause/play after ads (faster, less reliable)
 - Not set - uses default (`true`)
 
+**`twitchAdSolutions_playerType`** (default: `popout`)
+- Changes the player type used for access token requests
+- Possible values: `popout`, `embed`, `site`, `autoplay`
+- Not set - uses default (`popout`)
+
 ```js
 // Faster post-ad transition
 localStorage.setItem('twitchAdSolutions_reloadPlayerAfterAd', 'false');
 
-// Restore default
+// Change player type
+localStorage.setItem('twitchAdSolutions_playerType', 'embed');
+
+// Restore defaults
 localStorage.removeItem('twitchAdSolutions_reloadPlayerAfterAd');
+localStorage.removeItem('twitchAdSolutions_playerType');
 ```
 
 ## Issues with the scripts

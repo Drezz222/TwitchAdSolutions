@@ -517,6 +517,12 @@
         postTwitchWorkerMessage('AllSegmentsAreAdSegments');
     };
     declareOptions(window);
+    try {
+        const lsPlayerType = localStorage.getItem('twitchAdSolutions_playerType');
+        if (lsPlayerType !== null) {
+            ForceAccessTokenPlayerType = lsPlayerType;
+        }
+    } catch {}
     hookWindowWorker();
     hookFetch();
     if (document.readyState === "complete" || document.readyState === "interactive") {

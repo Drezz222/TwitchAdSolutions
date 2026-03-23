@@ -977,6 +977,10 @@
         if (lsReloadAfterAd !== null) {
             ReloadPlayerAfterAd = lsReloadAfterAd === 'true';
         }
+        const lsPlayerType = localStorage.getItem('twitchAdSolutions_playerType');
+        if (lsPlayerType !== null) {
+            OPT_FORCE_ACCESS_TOKEN_PLAYER_TYPE = lsPlayerType;
+        }
     } catch {}
     hookWindowWorker();
     hookFetch();
