@@ -960,8 +960,9 @@ twitch-videoad.js text/javascript
     window.reloadTwitchPlayer = reloadTwitchPlayer;
     declareOptions(window);
     try {
-        if (localStorage.getItem('twitchAdSolutions_resumeAfterAd') === 'true') {
-            ResumeAfterAd = true;
+        const lsResumeAfterAd = localStorage.getItem('twitchAdSolutions_resumeAfterAd');
+        if (lsResumeAfterAd !== null) {
+            ResumeAfterAd = lsResumeAfterAd === 'true';
         }
     } catch {}
     hookWindowWorker();
