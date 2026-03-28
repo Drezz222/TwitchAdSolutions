@@ -305,7 +305,8 @@ twitch-videoad.js text/javascript
                                         IsMidroll: false,
                                         IsStrippingAdSegments: false,
                                         NumStrippedAdSegments: 0,
-                                        RecoverySegments: []
+                                        RecoverySegments: [],
+                                        FailedBackupPlayerTypes: new Set()
                                     };
                                     const lines = encodingsM3u8.split(/\r?\n/);
                                     for (let i = 0; i < lines.length - 1; i++) {
@@ -555,6 +556,9 @@ twitch-videoad.js text/javascript
             for (let playerTypeIndex = startIndex; !backupM3u8 && playerTypeIndex < BackupPlayerTypes.length; playerTypeIndex++) {
                 const playerType = BackupPlayerTypes[playerTypeIndex];
                 const realPlayerType = playerType.replace('-CACHED', '');
+                if (streamInfo.FailedBackupPlayerTypes.has(realPlayerType)) {
+                    continue;
+                }
                 const isFullyCachedPlayerType = playerType != realPlayerType;
                 for (let i = 0; i < 2; i++) {
                     // This caches the m3u8 if it doesn't have ads. If the already existing cache has ads it fetches a new version (second loop)
@@ -579,9 +583,11 @@ twitch-videoad.js text/javascript
                                 }
                             } else {
                                 console.log('[AD DEBUG] Access token HTTP ' + accessTokenResponse.status + ' for ' + realPlayerType);
+                                streamInfo.FailedBackupPlayerTypes.add(realPlayerType);
                             }
                         } catch (err) {
                             console.log('[AD DEBUG] Access token failed for ' + realPlayerType + ': ' + err.message);
+                            streamInfo.FailedBackupPlayerTypes.add(realPlayerType);
                         }
                     }
                     if (encodingsM3u8) {
@@ -651,6 +657,7 @@ twitch-videoad.js text/javascript
             streamInfo.NumStrippedAdSegments = 0;
             streamInfo.ActiveBackupPlayerType = null;
             streamInfo.RequestedAds.clear();
+            streamInfo.FailedBackupPlayerTypes.clear();
             if (streamInfo.IsUsingModifiedM3U8 || ReloadPlayerAfterAd) {
                 streamInfo.IsUsingModifiedM3U8 = false;
                 streamInfo.LastPlayerReload = Date.now();
