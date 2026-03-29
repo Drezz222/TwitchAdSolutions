@@ -133,6 +133,12 @@ twitch-videoad.js text/javascript
                 console.log('[AD DEBUG] Worker intercepted — injecting ad-block hooks');
                 const newBlobStr = `
                     const pendingFetchRequests = new Map();
+                    const RE_SERVER_TIME_V2 = /#EXT-X-SESSION-DATA:DATA-ID="SERVER-TIME",VALUE="([^"]+)"/;
+                    const RE_SERVER_TIME = /SERVER-TIME="([0-9.]+)"/;
+                    const RE_SERVER_TIME_REPLACE_V2 = /(#EXT-X-SESSION-DATA:DATA-ID="SERVER-TIME",VALUE=")[^"]+(")/;
+                    const RE_SERVER_TIME_REPLACE = /(SERVER-TIME=")[0-9.]+"/;
+                    const RE_AD_URL = /(X-TV-TWITCH-AD-URL=")(?:[^"]*)(")/g;
+                    const RE_AD_CLICK_URL = /(X-TV-TWITCH-AD-CLICK-TRACKING-URL=")(?:[^"]*)(")/g;
                     ${hasAdTags.toString()}
                     ${stripAdSegments.toString()}
                     ${getStreamUrlForResolution.toString()}
