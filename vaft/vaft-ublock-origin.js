@@ -1172,6 +1172,12 @@ twitch-videoad.js text/javascript
         if (lsPlayerType !== null) {
             ForceAccessTokenPlayerType = lsPlayerType;
         }
+        const lsHideAdOverlay = localStorage.getItem('twitchAdSolutions_hideAdOverlay');
+        if (lsHideAdOverlay === 'true') {
+            const style = document.createElement('style');
+            style.textContent = '.adblock-overlay { display: none !important; }';
+            (document.head || document.documentElement).appendChild(style);
+        }
     } catch {}
     console.log('[AD DEBUG] Config: ReloadPlayerAfterAd = ' + ReloadPlayerAfterAd + ', ForceAccessTokenPlayerType = ' + ForceAccessTokenPlayerType);
     hookWindowWorker();
