@@ -538,8 +538,7 @@
                             const streamM3u8Response = await realFetch(streamM3u8Url);
                             if (streamM3u8Response.status === 200) {
                                 const m3u8Text = await streamM3u8Response.text();
-                                // FIX 6: Validate playlist is well-formed before using it
-                                if (m3u8Text && m3u8Text.includes('#EXTM3U')) {
+                                if (m3u8Text) {
                                     if (playerType == FallbackPlayerType) {
                                         fallbackM3u8 = m3u8Text;
                                     }
@@ -559,9 +558,6 @@
                                         backupM3u8 = m3u8Text;
                                         break;
                                     }
-                                } else {
-                                    console.log('[AD DEBUG] Malformed or empty playlist from ' + playerType + ' — skipping');
-                                    streamInfo.BackupEncodingsM3U8Cache[playerType] = null;
                                 }
                             } else {
                                 console.log('[AD DEBUG] Backup stream fetch failed for ' + playerType + ' (status ' + streamM3u8Response.status + ')');
