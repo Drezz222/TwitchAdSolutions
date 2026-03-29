@@ -285,11 +285,8 @@
                                 if (streamInfo != null && streamInfo.EncodingsM3U8 != null && (await realFetch(streamInfo.EncodingsM3U8.match(/^https:.*\.m3u8$/m)[0])).status !== 200) {
                                     streamInfo = null;
                                 }
-                                // FIX 3: Guard against race condition on StreamInfos init
                                 if (streamInfo == null || streamInfo.EncodingsM3U8 == null) {
-                                    if (!StreamInfos['__pending__' + channelName]) {
-                                        StreamInfos['__pending__' + channelName] = true;
-                                        StreamInfos[channelName] = streamInfo = {
+                                    StreamInfos[channelName] = streamInfo = {
                                             ChannelName: channelName,
                                             IsShowingAd: false,
                                             LastPlayerReload: 0,
@@ -350,10 +347,6 @@
                                                 streamInfo.ModifiedM3U8 = lines.join('\n');
                                             }
                                         }
-                                        delete StreamInfos['__pending__' + channelName];
-                                    } else {
-                                        streamInfo = StreamInfos[channelName];
-                                    }
                                 }
                                 streamInfo.LastPlayerReload = Date.now();
                                 resolve(new Response(replaceServerTimeInM3u8(streamInfo.IsUsingModifiedM3U8 ? streamInfo.ModifiedM3U8 : streamInfo.EncodingsM3U8, serverTime)));
@@ -1075,13 +1068,15 @@
                 }
                 return realGetItem.apply(this, arguments);
             };
-            // FIX 5: Use Symbol round-trip to detect localStorage hook instead of .toString()
-            const HOOK_TEST = Symbol('lsHookTest');
+            // FIX 5: Detect localStorage hook by checking if our hooked getItem
+            // returns the value we just set via the hooked setItem
+            const HOOK_TEST_KEY = '__vaft_hook_test__';
+            const HOOK_TEST_VAL = '__vaft_ok__';
             let hookWorking = false;
             try {
-                localStorage.setItem('__hooktest__', HOOK_TEST);
-                hookWorking = localStorage.getItem('__hooktest__') === HOOK_TEST;
-                localStorage.removeItem('__hooktest__');
+                localStorage.setItem(HOOK_TEST_KEY, HOOK_TEST_VAL);
+                hookWorking = localStorage.getItem(HOOK_TEST_KEY) === HOOK_TEST_VAL;
+                localStorage.removeItem(HOOK_TEST_KEY);
             } catch {}
             localStorageHookFailed = !hookWorking;
         } catch (err) {
