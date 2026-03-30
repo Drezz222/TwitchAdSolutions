@@ -929,73 +929,62 @@ twitch-videoad.js text/javascript
         };
     }
     // Pause/play or fully reload the Twitch player, preserving quality/volume settings
-    function doTwitchPlayerTask(isPausePlay, isReload) {
-        const playerAndState = getPlayerAndState();
-        if (!playerAndState) {
-            console.log('Could not find react root');
-            return;
-        }
-        const player = playerAndState.player;
-        const playerState = playerAndState.state;
-        if (!player) {
-            console.log('Could not find player');
-            return;
-        }
-        if (!playerState) {
-            console.log('Could not find player state');
-            return;
-        }
-        if (player.isPaused() || player.core?.paused) {
-            return;
-        }
-        playerBufferState.lastFixTime = Date.now();
-        playerBufferState.numSame = 0;
-        if (isPausePlay) {
+function doTwitchPlayerTask(isPausePlay, isReload) {
+    const playerAndState = getPlayerAndState();
+    if (!playerAndState) { console.log('Could not find react root'); return; }
+    const player = playerAndState.player;
+    const playerState = playerAndState.state;
+    if (!player) { console.log('Could not find player'); return; }
+    if (!playerState) { console.log('Could not find player state'); return; }
+    if (player.isPaused() || player.core?.paused) { return; }
+    playerBufferState.lastFixTime = Date.now();
+    playerBufferState.numSame = 0;
+    if (isPausePlay) {
+        const wasMuted = player.isMuted();
+        player.setMuted(true);
+        setTimeout(() => {
             player.pause();
             player.play();
-            return;
-        }
-        if (isReload) {
-            const lsKeyQuality = 'video-quality';
-            const lsKeyMuted = 'video-muted';
-            const lsKeyVolume = 'volume';
-            let currentQualityLS = null;
-            let currentMutedLS = null;
-            let currentVolumeLS = null;
-            try {
-                currentQualityLS = localStorage.getItem(lsKeyQuality);
-                currentMutedLS = localStorage.getItem(lsKeyMuted);
-                currentVolumeLS = localStorage.getItem(lsKeyVolume);
-                if (localStorageHookFailed && player?.core?.state) {
-                    localStorage.setItem(lsKeyMuted, JSON.stringify({default:player.core.state.muted}));
-                    localStorage.setItem(lsKeyVolume, player.core.state.volume);
-                }
-                if (localStorageHookFailed && player?.core?.state?.quality?.group) {
-                    localStorage.setItem(lsKeyQuality, JSON.stringify({default:player.core.state.quality.group}));
-                }
-            } catch {}
-            console.log('Reloading Twitch player');
-            playerState.setSrc({ isNewMediaPlayerInstance: true, refreshAccessToken: true });
-            postTwitchWorkerMessage('TriggeredPlayerReload');
-            player.play();
-            if (localStorageHookFailed && (currentQualityLS || currentMutedLS || currentVolumeLS)) {
-                setTimeout(() => {
-                    try {
-                        if (currentQualityLS) {
-                            localStorage.setItem(lsKeyQuality, currentQualityLS);
-                        }
-                        if (currentMutedLS) {
-                            localStorage.setItem(lsKeyMuted, currentMutedLS);
-                        }
-                        if (currentVolumeLS) {
-                            localStorage.setItem(lsKeyVolume, currentVolumeLS);
-                        }
-                    } catch {}
-                }, 3000);
-            }
-            return;
-        }
+            setTimeout(() => { if (!wasMuted) player.setMuted(false); }, 500);
+        }, 50);
+        return;
     }
+    if (isReload) {
+        const lsKeyQuality = 'video-quality';
+        const lsKeyMuted = 'video-muted';
+        const lsKeyVolume = 'volume';
+        let currentQualityLS = null;
+        let currentMutedLS = null;
+        let currentVolumeLS = null;
+        try {
+            currentQualityLS = localStorage.getItem(lsKeyQuality);
+            currentMutedLS = localStorage.getItem(lsKeyMuted);
+            currentVolumeLS = localStorage.getItem(lsKeyVolume);
+            if (localStorageHookFailed && player?.core?.state) {
+                localStorage.setItem(lsKeyMuted, JSON.stringify({default:player.core.state.muted}));
+                localStorage.setItem(lsKeyVolume, player.core.state.volume);
+            }
+            if (localStorageHookFailed && player?.core?.state?.quality?.group) {
+                localStorage.setItem(lsKeyQuality, JSON.stringify({default:player.core.state.quality.group}));
+            }
+        } catch {}
+        const wasMuted = player.isMuted();
+        player.setMuted(true);
+        console.log('Reloading Twitch player');
+        playerState.setSrc({ isNewMediaPlayerInstance: true, refreshAccessToken: true });
+        postTwitchWorkerMessage('TriggeredPlayerReload');
+        player.play();
+        setTimeout(() => {
+            try {
+                if (!wasMuted) player.setMuted(false);
+                if (currentQualityLS) localStorage.setItem(lsKeyQuality, currentQualityLS);
+                if (currentMutedLS) localStorage.setItem(lsKeyMuted, currentMutedLS);
+                if (currentVolumeLS) localStorage.setItem(lsKeyVolume, currentVolumeLS);
+            } catch {}
+        }, localStorageHookFailed ? 3000 : 500);
+        return;
+    }
+}
     window.reloadTwitchPlayer = () => {
         doTwitchPlayerTask(false, true);
     };
