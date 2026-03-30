@@ -1,7 +1,18 @@
+// ==UserScript==
+// @name         Twitch Video Ad Fix (vaft)
+// @namespace    https://github.com/cleanmaster/twitch-videoad
+// @version      29
+// @description  Block Twitch video ads
+// @author       cleanmaster
+// @match        https://www.twitch.tv/*
+// @run-at       document-start
+// @grant        none
+// ==/UserScript==
+
 (function() {
     if ( /(^|\.)twitch\.tv$/.test(document.location.hostname) === false ) { return; }
     'use strict';
-    const ourTwitchAdSolutionsVersion = 31;
+    const ourTwitchAdSolutionsVersion = 29;
     if (typeof window.twitchAdSolutionsVersion !== 'undefined' && window.twitchAdSolutionsVersion >= ourTwitchAdSolutionsVersion) {
         console.log("skipping vaft as there's another script active. ourVersion:" + ourTwitchAdSolutionsVersion + " activeVersion:" + window.twitchAdSolutionsVersion);
         window.twitchAdSolutionsVersion = ourTwitchAdSolutionsVersion;
